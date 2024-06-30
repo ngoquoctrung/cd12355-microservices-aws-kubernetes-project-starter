@@ -4,11 +4,12 @@ FROM python:3.9-slim
 # Set the working directory in the container
 WORKDIR /app
 
+
 # Update the local package index with the latest packages from the repositories
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt update -y
+
+# Install a couple of packages to successfully install postgresql server locally
+RUN apt install -y build-essential libpq-dev
 
 # Copy the current directory contents into the container at /app
 COPY . /app
@@ -18,9 +19,6 @@ RUN pip install --upgrade pip setuptools wheel
 
 # Install any needed packages specified in requirements.txt
 RUN pip install -r requirements.txt
-
-# Define build arguments
-ARG POSTGRES_PASSWORD
 
 # Set environment variables using build arguments
 ENV DB_USERNAME=myuser
