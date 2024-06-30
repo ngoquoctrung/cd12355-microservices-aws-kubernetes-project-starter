@@ -28,14 +28,12 @@ kubectl apply -f pvc.yaml
 kubectl apply -f pv.yaml
 kubectl apply -f postgresql-deployment.yaml
 
-kubectl delete pv my-manual-pv
-kubectl delete pvc postgresql-pvc
-kubectl delete pvc data-my-service-postgresql-0
-kubectl delete scv my-manual-pv
-kubectl delete Service postgresql-service
 kubectl get pvc
+#kubectl delete pvc postgresql-pvc
 kubectl get pv
+#kubectl delete pv my-manual-pv
 kubectl get Service
+#kubectl delete Service postgresql-service
 
 #Set up database
 helm repo add bitnami https://charts.bitnami.com/bitnami
@@ -43,22 +41,20 @@ helm install my-service bitnami/postgresql
 
 export POSTGRES_PASSWORD=$(kubectl get secret --namespace default my-service-postgresql -o jsonpath="{.data.postgres-password}" | base64 -d)
 echo $POSTGRES_PASSWORD
-export DB_USERNAME=myuser
-export DB_PASSWORD=${POSTGRES_PASSWORD}
-export DB_HOST=127.0.0.1
-export DB_PORT=5433
-export DB_NAME=mydatabase
+
 #Test Database Connection
 kubectl get pods
-kubectl exec -it postgresql-77d75d45d5-28xhk -- bash
+kubectl exec -it postgresql-77d75d45d5-vx7l8 -- bash
 
 psql -U myuser -d mydatabase
 
 \l
-q # to exit
+
 
 \c mydatabase
 
+\q # to exit
+exit # to exit
 kubectl apply -f postgresql-service.yaml
 
 # List the services
@@ -74,3 +70,32 @@ export DB_PASSWORD=mypassword
 PGPASSWORD="$DB_PASSWORD" psql --host 127.0.0.1 -U myuser -d mydatabase -p 5433 < ./db/1_create_tables.sql
 PGPASSWORD="$DB_PASSWORD" psql --host 127.0.0.1 -U myuser -d mydatabase -p 5433 < ./db/2_seed_users.sql
 PGPASSWORD="$DB_PASSWORD" psql --host 127.0.0.1 -U myuser -d mydatabase -p 5433 < ./db/3_seed_tokens.sql
+
+#Run the following command to open up the psql terminal:
+PGPASSWORD="$DB_PASSWORD" psql --host 127.0.0.1 -U myuser -d mydatabase -p 5433
+select *from users;
+select* from tokens;
+#Closing the forwarded ports, this is just an FYI, you do not need to run it:
+ps aux | grep 'kubectl port-forward' | grep -v grep | awk '{print $2}' | xargs -r kill
+
+#Build the Analytics Application Locally
+
+cd analytics
+pip install -r requirements.txt
+
+#kubectl port-forward --namespace default svc/postgresql-service 5433:5432 &
+kubectl port-forward --namespace default svc/postgresql-service 5133:5432 &
+export POSTGRES_PASSWORD=$(kubectl get secret --namespace default my-service-postgresql -o jsonpath="{.data.postgres-password}" | base64 -d)
+
+export DB_USERNAME=myuser
+export DB_PASSWORD=${POSTGRES_PASSWORD}
+echo $DB_PASSWORD
+export DB_HOST=127.0.0.1
+export DB_PORT=5433
+export DB_NAME=mydatabase
+
+python app.py
+
+curl 127.0.0.1:5153/api/reports/daily_usage
+curl 127.0.0.1:5153/api/reports/user_visits
+
