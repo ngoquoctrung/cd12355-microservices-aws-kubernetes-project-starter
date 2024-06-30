@@ -27,5 +27,7 @@ ENV DB_HOST=127.0.0.1
 ENV DB_PORT=5433
 ENV DB_NAME=mydatabase
 
+EXPOSE 5153
+
 # Run app.py when the container launches
 CMD ["python", "app.py"]

@@ -86,7 +86,6 @@ pip install -r requirements.txt
 #kubectl port-forward --namespace default svc/postgresql-service 5433:5432 &
 kubectl port-forward --namespace default svc/postgresql-service 5133:5432 &
 export POSTGRES_PASSWORD=$(kubectl get secret --namespace default my-service-postgresql -o jsonpath="{.data.postgres-password}" | base64 -d)
-
 export DB_USERNAME=myuser
 export DB_PASSWORD=${POSTGRES_PASSWORD}
 echo $DB_PASSWORD
@@ -99,3 +98,5 @@ python app.py
 curl 127.0.0.1:5153/api/reports/daily_usage
 curl 127.0.0.1:5153/api/reports/user_visits
 
+docker build -t test-coworking-analytics .
+docker run -p 5153:5153 test-coworking-analytics
