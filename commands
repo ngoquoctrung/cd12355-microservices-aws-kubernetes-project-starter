@@ -37,17 +37,9 @@ kubectl get pv
 kubectl get svc
 #kubectl delete svc postgresql-service
 
-#Set up database
-helm repo add bitnami https://charts.bitnami.com/bitnami
-helm install my-postgres bitnami/postgresql
-
-export POSTGRES_PASSWORD=$(kubectl get secret --namespace default my-postgres-postgresql -o jsonpath="{.data.postgres-password}" | base64 -d)
-
-echo $POSTGRES_PASSWORD
-
 #Test Database Connection
 kubectl get pods
-kubectl exec -it postgresql-77d75d45d5-ndfsh -- bash
+kubectl exec -it postgresql-77d75d45d5-vcj5r -- bash
 
 psql -U myuser -d mydatabase
 
@@ -87,8 +79,8 @@ pip install -r requirements.txt
 
 kubectl port-forward --namespace default svc/postgresql-service 5433:5432 &
 
-export DB_PASSWORD=${POSTGRES_PASSWORD}
-echo $DB_PASSWORD
+export DB_USERNAME=myuser
+export DB_PASSWORD=mypassword
 export DB_HOST=127.0.0.1
 export DB_PORT=5433
 export DB_NAME=mydatabase
@@ -99,8 +91,14 @@ curl 127.0.0.1:5153/api/reports/daily_usage
 curl 127.0.0.1:5153/api/reports/user_visits
 
 docker build -t test-coworking-analytics .
-docker run --network="host" test-coworking-analytics
+docker run -e DB_USERNAME=myuser -e DB_PASSWORD=mypassword -e DB_HOST=127.0.0.1 -e DB_PORT=5433 -e DB_NAME=mydatabase --network="host" test-coworking-analytics
 
+kubectl get svc
+kubectl port-forward --namespace default svc/postgresql-service 5433:5432 &
+export POSTGRES_PASSWORD=$(kubectl get secret --namespace default postgresql-service -o jsonpath="{.data.postgres-password}" | base64 -d)
+
+kubectl apply -f deployment/configmap.yaml
+kubectl apply -f deployment/coworking.yaml
 
 curl a8c6ccec2672f48e48e90523965da177-98993898.us-east-1.elb.amazonaws.com:5153/api/reports/daily_usage
 curl a8c6ccec2672f48e48e90523965da177-98993898.us-east-1.elb.amazonaws.com:5153/api/reports/user_visits
